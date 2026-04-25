@@ -52,6 +52,28 @@ const getRequestPublicBaseUrl = (req) => {
   return `http://127.0.0.1:${config.PORT}`;
 };
 
+const getResolvedStremioAddonBaseId = (req) => {
+  const explicitAddonId = String(process.env.STREMIO_ADDON_ID || '').trim();
+
+  if (explicitAddonId) {
+    return explicitAddonId;
+  }
+
+  try {
+    const publicBaseUrl = getRequestPublicBaseUrl(req);
+    const { host } = new URL(publicBaseUrl);
+    const deploymentKey = String(host || publicBaseUrl).trim().toLowerCase();
+    const deploymentHash = createHash('sha1')
+      .update(deploymentKey)
+      .digest('hex')
+      .slice(0, 10);
+
+    return `${config.STREMIO_ADDON_ID}.${deploymentHash}`;
+  } catch {
+    return `${config.STREMIO_ADDON_ID}.local`;
+  }
+};
+
 const normalizeRequestedType = (type) => {
   if (typeof type !== 'string' || !type.trim()) {
     return null;
@@ -2688,6 +2710,7 @@ export class StreamManager {
   }
 
   getAddonPresentation(req) {
+    const addonBaseId = getResolvedStremioAddonBaseId(req);
     const providers = this.getRequestedProviders(req);
     const qualityPriority = this.getRequestedQualityPriority(req);
     const streamOptions = this.getRequestedStreamOptions(req);
@@ -2701,7 +2724,7 @@ export class StreamManager {
         providers,
         qualityPriority,
         streamOptions,
-        addonId: config.STREMIO_ADDON_ID,
+        addonId: addonBaseId,
         addonName: config.STREMIO_ADDON_NAME,
         configurable: true,
         description: config.CONFIGURATION_DESCRIPTION
@@ -2721,7 +2744,7 @@ export class StreamManager {
       providers,
       qualityPriority,
       streamOptions,
-      addonId: `${config.STREMIO_ADDON_ID}.${providerHash}`,
+      addonId: `${addonBaseId}.${providerHash}`,
       addonName: `${config.STREMIO_ADDON_NAME}(${configuredLabel.code})`,
       configurable: true,
       description: `Configured install: ${configuredLabel.label}. Providers: ${providerSummary}. Quality priority: ${qualityPriority.join(' > ')}. Playback: ${summarizeStreamOptions(streamOptions)}`

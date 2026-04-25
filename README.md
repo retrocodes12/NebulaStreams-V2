@@ -69,6 +69,8 @@ Use `PUBLIC_BASE_URL` only if you want one fixed canonical origin, such as:
 - cache prewarming that should target exactly one public hostname
 - a reverse-proxy setup where the incoming host header is not the public hostname
 
+By default, V2 now derives a host-specific Stremio addon id for each deployment so self-hosted instances do not collide with each other inside Stremio. If you want one manually fixed addon id instead, set `STREMIO_ADDON_ID`.
+
 `0` means disabled for:
 
 - `MAX_ACTIVE_STREAMS`
