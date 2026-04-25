@@ -94,6 +94,8 @@ Import the repo as a Blueprint and deploy. No manual env setup is required for t
 
 If you later want a custom domain or Redis, add only those values.
 
+If the GitHub repo is public, other people can deploy it by importing the public repo URL into Render. They do not need access to your GitHub account itself. If the repo is private, they need repo access or their own fork.
+
 ## Vercel
 
 V2 is not a good match for Vercel if you want full capability. This repo is a long-running Express process with in-memory state, filesystem cache, torrent streaming, and background work. Vercel runs request-bounded functions, not a persistent Node server, so it is the wrong target if you want the addon to run at full capacity.

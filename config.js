@@ -157,8 +157,6 @@ export const config = Object.freeze({
   PUBLIC_BASE_URL: String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/u, ''),
   REVERSE_PROXY_TARGET: String(process.env.REVERSE_PROXY_TARGET || '').trim().replace(/\/+$/u, ''),
   REVERSE_PROXY_TIMEOUT_SECONDS: toPositiveInteger(process.env.REVERSE_PROXY_TIMEOUT_SECONDS, 60),
-  ADMIN_USERNAME: process.env.ADMIN_USERNAME || 'admin',
-  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'sohil@123',
   SELF_HOST_MODE: toBoolean(process.env.SELF_HOST_MODE, true),
   MAXIMIZE_PROVIDER_COVERAGE: toBoolean(process.env.MAXIMIZE_PROVIDER_COVERAGE, true),
   STREMIO_ADDON_ID: process.env.STREMIO_ADDON_ID || 'community.nebulastreams.v2',
