@@ -1427,7 +1427,7 @@ const renderConfigurePage = ({ baseUrl, providers }) => {
         <aside class="sidebar">
           <div class="brand">
             <div class="brand-mark">
-              <img src="${escapeHtml(baseUrl)}/assets/nebulastreams-icon.jpg" alt="NebulaStreams">
+              <img src="${escapeHtml(baseUrl)}/assets/nebulastreams-icon-20260425.jpeg" alt="NebulaStreams">
             </div>
             <div class="brand-copy">
               <h1>NebulaStreams</h1>
@@ -3335,7 +3335,7 @@ const renderDonatePage = ({ baseUrl }) => {
       <section class="shell">
         <div class="content">
           <div class="logo-wrap">
-            <img src="${escapeHtml(baseUrl)}/assets/nebulastreams-icon.jpg" alt="NebulaStreams">
+            <img src="${escapeHtml(baseUrl)}/assets/nebulastreams-icon-20260425.jpeg" alt="NebulaStreams">
           </div>
           <h1>Support NebulaStreams</h1>
           <p class="subtitle">Help keep the self-hosted streaming backend online, maintained, and improving over time.</p>

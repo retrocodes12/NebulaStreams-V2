@@ -2748,7 +2748,7 @@ export class StreamManager {
       behaviorHints: {
         configurable: addonPresentation.configurable
       },
-      logo: `${baseUrl}/assets/nebulastreams-icon.jpg`,
+      logo: `${baseUrl}/assets/nebulastreams-icon-20260425.jpeg`,
       stremioAddonsConfig: {
         issuer: 'https://stremio-addons.net',
         signature: 'eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..c1dKT48ayjjpai4JwQCcTA.cTsGooecPtjL0uCwd_o8UuHCo--DfHlIfkqcpk5Pk5UidakL038sCsT2RMB6AuUyBZOVlVP2LKHbygHwNcYtcADvRZIK53YGr-SL2V9L8YH6SFgUwJC5eBE8lOlUWKio.ygBtjPAXg3ikys04cQarXQ'

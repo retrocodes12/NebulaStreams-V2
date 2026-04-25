@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/nebulastreams-logo.jpeg" alt="NebulaStreams V2 logo" width="220" />
+<img src="./assets/nebulastreams-logo-20260425.jpeg" alt="NebulaStreams V2 logo" width="220" />
 
 # NebulaStreams V2
 
