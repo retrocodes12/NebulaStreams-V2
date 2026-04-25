@@ -1,0 +1,29 @@
+{
+  "name": "nebulastreams-v2",
+  "version": "2.0.0",
+  "description": "Self-host optimized multi-provider HTTP stream addon for Stremio",
+  "type": "module",
+  "main": "index.js",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "keep-alive": "node scripts/keepAliveRender.js",
+    "check:syntax": "node --check index.js && node --check config.js && node --check scripts/keepAliveRender.js && node --check services/cacheManager.js && node --check services/httpProxy.js && node --check services/imdbResolver.js && node --check services/reverseProxy.js && node --check services/streamManager.js && node --check services/torrentEngine.js && node --check services/userTracker.js && node --check utils/magnet.js && node --check utils/logger.js"
+  },
+  "dependencies": {
+    "axios": "^1.14.0",
+    "cheerio-without-node-native": "^0.20.2",
+    "crypto-js": "^4.2.0",
+    "easystreams": "github:realbestia1/easystreams#e0bcd6872a539b677f0819c1c0d1d5b940c77b66",
+    "express": "^5.2.1",
+    "nuvio-providers-arabic": "github:nvmindl/nuvio-providers#8e4994a54d9b29e07be650903b6440d660ff7592",
+    "nuvio-providers-latino": "github:KennethJYS/Nuvio-Providers-Latino#874690c9653e5edc759538384fb36c04cd84f028",
+    "redis": "^5.11.0",
+    "torrent-stream": "^1.2.1",
+    "ws": "^8.18.3"
+  }
+}
