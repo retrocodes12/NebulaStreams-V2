@@ -21,9 +21,6 @@ Self-host optimized multi-provider HTTP stream addon for Stremio.
 
 This repo is intended for operators who want to run the addon on their own machine or VPS and tune the box for throughput.
 
-## Default Runtime Model
-
-V2 still keeps bounded concurrency for provider execution and host fan-out. That is intentional. Removing every internal bound would make the process easier to crash under real traffic. The public-facing throttles are disabled by default, but the internal scheduler still uses wider caps so the process can stay responsive under load.
 
 ## Local Start
 
@@ -94,7 +91,6 @@ Import the repo as a Blueprint and deploy. No manual env setup is required for t
 
 If you later want a custom domain or Redis, add only those values.
 
-If the GitHub repo is public, other people can deploy it by importing the public repo URL into Render. They do not need access to your GitHub account itself. If the repo is private, they need repo access or their own fork.
 
 ## Vercel
 
