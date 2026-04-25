@@ -38,9 +38,11 @@ Default local endpoints:
 - `http://127.0.0.1:3000/configure`
 - `http://127.0.0.1:3000/health`
 
-## Important Environment Overrides
+## Optional Environment Overrides
 
-These are the main knobs for a self-hosted deployment:
+You do not need to set any env vars for a basic deploy. Import the repo on Render, let it run with defaults, and the addon will derive its public origin from the incoming request host.
+
+Set overrides only when you actually need them:
 
 ```env
 PUBLIC_BASE_URL=https://your-domain.example
@@ -61,6 +63,12 @@ BOT_PROTECTION_ENABLED=false
 MEMORY_GUARD_ENABLED=false
 ```
 
+Use `PUBLIC_BASE_URL` only if you want one fixed canonical origin, such as:
+
+- a custom domain
+- cache prewarming that should target exactly one public hostname
+- a reverse-proxy setup where the incoming host header is not the public hostname
+
 `0` means disabled for:
 
 - `MAX_ACTIVE_STREAMS`
@@ -72,6 +80,7 @@ MEMORY_GUARD_ENABLED=false
 
 ## Deployment Notes
 
+- Render works with the repo defaults. `render.yaml` only keeps the Node version, cache path, and an optional Redis placeholder.
 - Use a VPS or dedicated machine if you want the wider V2 defaults to matter.
 - Put a reverse proxy in front of it for TLS and connection reuse.
 - Redis is optional but recommended if you want stronger cache persistence across restarts.
@@ -79,4 +88,10 @@ MEMORY_GUARD_ENABLED=false
 
 ## Render
 
-`render.yaml` is included, but V2 is not designed around free/shared Render limits. It exists only as a convenience template. For full performance, self-host it.
+Import the repo as a Blueprint and deploy. No manual env setup is required for the default path.
+
+If you later want a custom domain or Redis, add only those values.
+
+## Vercel
+
+V2 is not a good match for Vercel if you want full capability. This repo is a long-running Express process with in-memory state, filesystem cache, torrent streaming, and background work. Vercel runs request-bounded functions, not a persistent Node server, so it is the wrong target if you want the addon to run at full capacity.

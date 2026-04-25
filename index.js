@@ -161,7 +161,19 @@ const renderProviderStatusRows = (providers = []) => providers.map((provider) =>
           </tr>`;
 }).join('');
 
-const getPublicBaseUrl = (req) => config.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+const getPublicBaseUrl = (req) => {
+  if (config.PUBLIC_BASE_URL) {
+    return config.PUBLIC_BASE_URL;
+  }
+
+  const host = String(req?.get?.('host') || '').trim();
+
+  if (host) {
+    return `${req.protocol}://${host}`;
+  }
+
+  return `http://127.0.0.1:${config.PORT}`;
+};
 
 const renderConfigurePage = ({ baseUrl, providers }) => {
   const providerIds = providers.map((provider) => provider.id);

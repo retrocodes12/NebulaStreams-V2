@@ -38,6 +38,20 @@ const detectSourceType = (source) => {
   return null;
 };
 
+const getRequestPublicBaseUrl = (req) => {
+  if (config.PUBLIC_BASE_URL) {
+    return config.PUBLIC_BASE_URL;
+  }
+
+  const host = String(req?.get?.('host') || '').trim();
+
+  if (host) {
+    return `${req.protocol}://${host}`;
+  }
+
+  return `http://127.0.0.1:${config.PORT}`;
+};
+
 const normalizeRequestedType = (type) => {
   if (typeof type !== 'string' || !type.trim()) {
     return null;
@@ -1896,7 +1910,7 @@ export class StreamManager {
       extractorRedirectCacheEntries: this.extractorRedirectCache.size,
       extractorRedirectInFlight: this.extractorRedirectInFlight.size,
       popularStreamPrewarm: {
-        enabled: Boolean(config.POPULAR_STREAM_PREWARM_ENABLED && this.userTracker),
+        enabled: Boolean(config.POPULAR_STREAM_PREWARM_ENABLED && this.userTracker && config.PUBLIC_BASE_URL),
         running: this.popularStreamPrewarmRunning,
         intervalSeconds: config.POPULAR_STREAM_PREWARM_INTERVAL_SECONDS,
         limit: config.POPULAR_STREAM_PREWARM_LIMIT,
@@ -2025,7 +2039,7 @@ export class StreamManager {
   }
 
   startPopularStreamPrewarm() {
-    if (!config.POPULAR_STREAM_PREWARM_ENABLED || !this.userTracker || this.popularStreamPrewarmTimer) {
+    if (!config.POPULAR_STREAM_PREWARM_ENABLED || !this.userTracker || !config.PUBLIC_BASE_URL || this.popularStreamPrewarmTimer) {
       return;
     }
 
@@ -2075,7 +2089,8 @@ export class StreamManager {
           episode: search.episode,
           providers: search.providers,
           qualityPriority: search.qualityPriority,
-          streamOptions: search.streamOptions
+          streamOptions: search.streamOptions,
+          publicBaseUrl: config.PUBLIC_BASE_URL || null
         });
         const cachedResult = await this.getCachedStremioStreams(resultCacheKey);
 
@@ -2285,9 +2300,19 @@ export class StreamManager {
     };
   }
 
-  buildStremioResultCacheKey({ tmdbId, mediaType, season, episode, providers, qualityPriority, streamOptions, privateProviderSettingsHash = null }) {
+  buildStremioResultCacheKey({
+    tmdbId,
+    mediaType,
+    season,
+    episode,
+    providers,
+    qualityPriority,
+    streamOptions,
+    privateProviderSettingsHash = null,
+    publicBaseUrl = null
+  }) {
     return JSON.stringify({
-      version: 55,
+      version: 56,
       tmdbId,
       mediaType,
       season: season ?? null,
@@ -2295,7 +2320,8 @@ export class StreamManager {
       providers: providers ?? [],
       qualityPriority,
       streamOptions: streamOptions ?? DEFAULT_STREAM_OPTIONS,
-      privateProviderSettingsHash
+      privateProviderSettingsHash,
+      publicBaseUrl
     });
   }
 
@@ -2703,7 +2729,7 @@ export class StreamManager {
   }
 
   async handleStremioManifest(req, res) {
-    const baseUrl = config.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = getRequestPublicBaseUrl(req);
     const addonPresentation = this.getAddonPresentation(req);
 
     res.json({
@@ -2755,7 +2781,7 @@ export class StreamManager {
         return;
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = getRequestPublicBaseUrl(req);
       const requestedProviders = this.getRequestedProviders(req);
       const qualityPriority = this.getRequestedQualityPriority(req);
       const streamOptions = this.getRequestedStreamOptions(req);
@@ -2772,7 +2798,8 @@ export class StreamManager {
         providers: requestedProviders,
         qualityPriority,
         streamOptions,
-        privateProviderSettingsHash
+        privateProviderSettingsHash,
+        publicBaseUrl: baseUrl
       });
       this.userTracker?.trackStreamSearch(req, {
         imdbId: parsed.imdbId,
@@ -3174,7 +3201,7 @@ export class StreamManager {
 
   async handleAddSource(req, res, next) {
     try {
-      const streamUrl = await this.createRegisteredStreamUrl(`${req.protocol}://${req.get('host')}`, {
+      const streamUrl = await this.createRegisteredStreamUrl(getRequestPublicBaseUrl(req), {
         type: req.body?.type,
         source: req.body?.source,
         headers: req.body?.headers,
@@ -3214,7 +3241,7 @@ export class StreamManager {
 
   async handleProviderStreams(req, res, next) {
     try {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = getRequestPublicBaseUrl(req);
       const provider = req.params.provider;
       const streams = await this.providerService.getStreams({
         provider,
@@ -3247,7 +3274,7 @@ export class StreamManager {
 
   async handleAggregateProviderStreams(req, res, next) {
     try {
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = getRequestPublicBaseUrl(req);
       const requestedProviders = typeof req.query.providers === 'string'
         ? req.query.providers.split(',').map((value) => value.trim()).filter(Boolean)
         : undefined;
@@ -3333,7 +3360,7 @@ export class StreamManager {
         return;
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = getRequestPublicBaseUrl(req);
       const requestedProviders = this.getRequestedProviders(req);
       const qualityPriority = this.getRequestedQualityPriority(req);
       const streamOptions = this.getRequestedStreamOptions(req);

@@ -154,7 +154,7 @@ const toImdbTmdbOverrideMap = (value) => {
 export const config = Object.freeze({
   PORT: toPositiveInteger(process.env.PORT, 3000),
   CACHE_DIR: path.resolve(process.cwd(), process.env.CACHE_DIR || './cache'),
-  PUBLIC_BASE_URL: String(process.env.PUBLIC_BASE_URL || 'http://127.0.0.1:3000').trim().replace(/\/+$/u, ''),
+  PUBLIC_BASE_URL: String(process.env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/u, ''),
   REVERSE_PROXY_TARGET: String(process.env.REVERSE_PROXY_TARGET || '').trim().replace(/\/+$/u, ''),
   REVERSE_PROXY_TIMEOUT_SECONDS: toPositiveInteger(process.env.REVERSE_PROXY_TIMEOUT_SECONDS, 60),
   ADMIN_USERNAME: process.env.ADMIN_USERNAME || 'admin',
