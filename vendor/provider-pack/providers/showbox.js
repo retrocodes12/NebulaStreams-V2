@@ -6,13 +6,13 @@ const TMDB_API_KEY = '439c478a771f35c05022f9feabcca01c';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 // ShowBox API Configuration
-const SHOWBOX_API_BASE = 'https://febapi.nuvioapp.space/api/media';
+const SHOWBOX_API_BASE = 'https://febapi.nuvioapp.space/api';
 const TMDB_REQUEST_TIMEOUT_MS = 4000;
 const SHOWBOX_API_TIMEOUT_MS = 22000;
 
 // Working headers for ShowBox API
 const WORKING_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Accept': 'application/json',
     'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
     'Accept-Encoding': 'gzip, deflate, br, zstd',
@@ -78,12 +78,49 @@ function getOssGroup(scraperSettings = null) {
     return null; // OSS group is optional
 }
 
+function decodeBase64Url(value) {
+    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+
+    if (typeof atob === 'function') {
+        return decodeURIComponent(Array.prototype.map.call(atob(padded), function (char) {
+            return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+    }
+
+    if (typeof Buffer !== 'undefined' && Buffer.from) {
+        return Buffer.from(padded, 'base64').toString('utf8');
+    }
+
+    throw new Error('No base64 decoder available');
+}
+
+function getJwtExpiryIso(token) {
+    try {
+        const payloadSegment = String(token || '').split('.')[1];
+
+        if (!payloadSegment) {
+            return 'unknown';
+        }
+
+        const payload = JSON.parse(decodeBase64Url(payloadSegment));
+
+        if (!payload || typeof payload.exp !== 'number') {
+            return 'unknown';
+        }
+
+        return new Date(payload.exp * 1000).toISOString();
+    } catch (error) {
+        return 'unknown';
+    }
+}
+
 // Utility Functions
 function getQualityFromName(qualityStr) {
     if (!qualityStr) return 'Unknown';
-    
+
     const quality = qualityStr.toUpperCase();
-    
+
     // Map API quality values to normalized format
     if (quality === 'ORG' || quality === 'ORIGINAL') return 'Original';
     if (quality === '4K' || quality === '2160P') return '4K';
@@ -93,7 +130,7 @@ function getQualityFromName(qualityStr) {
     if (quality === '480P' || quality === 'SD') return '480p';
     if (quality === '360P') return '360p';
     if (quality === '240P') return '240p';
-    
+
     // Try to extract number from string and format consistently
     const match = qualityStr.match(/(\d{3,4})[pP]?/);
     if (match) {
@@ -106,18 +143,18 @@ function getQualityFromName(qualityStr) {
         if (resolution >= 360) return '360p';
         return '240p';
     }
-    
+
     return 'Unknown';
 }
 
 function formatFileSize(sizeStr) {
     if (!sizeStr) return 'Unknown';
-    
+
     // If it's already formatted (like "15.44 GB" or "224.39 MB"), return as is
     if (typeof sizeStr === 'string' && (sizeStr.includes('GB') || sizeStr.includes('MB') || sizeStr.includes('KB'))) {
         return sizeStr;
     }
-    
+
     // If it's a number, convert to GB/MB
     if (typeof sizeStr === 'number') {
         const gb = sizeStr / (1024 * 1024 * 1024);
@@ -128,7 +165,7 @@ function formatFileSize(sizeStr) {
             return `${mb.toFixed(2)} MB`;
         }
     }
-    
+
     return sizeStr;
 }
 
@@ -136,7 +173,7 @@ function formatFileSize(sizeStr) {
 function makeRequest(url, options = {}) {
     const controller = new AbortController();
     const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : SHOWBOX_API_TIMEOUT_MS;
-    const timeoutId = setTimeout(function() {
+    const timeoutId = setTimeout(function () {
         controller.abort(new Error(`Request timeout after ${timeoutMs}ms`));
     }, timeoutMs);
 
@@ -148,39 +185,72 @@ function makeRequest(url, options = {}) {
         headers: { ...WORKING_HEADERS, ...requestOptions.headers },
         ...requestOptions,
         signal: requestOptions.signal || controller.signal
-    }).then(function(response) {
+    }).then(function (response) {
         clearTimeout(timeoutId);
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            // Try to get response body for better error logging
+            return response.text().then(function (body) {
+                console.error(`[ShowBox] HTTP Error ${response.status}: ${response.statusText}`);
+                console.error(`[ShowBox] Response body: ${body.substring(0, 500)}`);
+                throw new Error(`HTTP ${response.status}: ${response.statusText} - ${body.substring(0, 200)}`);
+            }).catch(function (parseError) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            });
         }
         return response;
-    }).catch(function(error) {
+    }).catch(function (error) {
         clearTimeout(timeoutId);
         console.error(`[ShowBox] Request failed for ${url}: ${error.message}`);
         throw error;
     });
 }
 
+// Simple in-memory cache for TMDB metadata
+const tmdbCache = new Map();
+const TMDB_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Get movie/TV show details from TMDB
 function getTMDBDetails(tmdbId, mediaType) {
+    const cacheKey = `${mediaType}:${tmdbId}`;
+    const cached = tmdbCache.get(cacheKey);
+
+    if (cached && cached.expiresAt > Date.now()) {
+        console.log(`[ShowBox] TMDB cache hit for ${cacheKey}`);
+        return Promise.resolve(cached.value);
+    }
+
     const endpoint = mediaType === 'tv' ? 'tv' : 'movie';
     const url = `${TMDB_BASE_URL}/${endpoint}/${tmdbId}?api_key=${TMDB_API_KEY}`;
-    
+
     return makeRequest(url, { timeoutMs: TMDB_REQUEST_TIMEOUT_MS })
-        .then(function(response) {
+        .then(function (response) {
             return response.json();
         })
-        .then(function(data) {
+        .then(function (data) {
             const title = mediaType === 'tv' ? data.name : data.title;
             const releaseDate = mediaType === 'tv' ? data.first_air_date : data.release_date;
             const year = releaseDate ? parseInt(releaseDate.split('-')[0]) : null;
-            
-            return {
+
+            const result = {
                 title: title,
                 year: year
             };
+
+            tmdbCache.set(cacheKey, { value: result, expiresAt: Date.now() + TMDB_CACHE_TTL_MS });
+
+            // Prune cache if it grows too large
+            if (tmdbCache.size > 1000) {
+                const now = Date.now();
+                for (const [key, entry] of tmdbCache) {
+                    if (entry.expiresAt <= now) {
+                        tmdbCache.delete(key);
+                    }
+                }
+            }
+
+            return result;
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.log(`[ShowBox] TMDB lookup failed: ${error.message}`);
             return {
                 title: `TMDB ID ${tmdbId}`,
@@ -192,10 +262,24 @@ function getTMDBDetails(tmdbId, mediaType) {
 // Process ShowBox API response - new format with versions and links
 function processShowBoxResponse(data, mediaInfo, mediaType, seasonNum, episodeNum) {
     const streams = [];
-    
+
     try {
-        if (!data || !data.success) {
-            console.log(`[ShowBox] API returned unsuccessful response`);
+        // Log full response for debugging
+        console.log(`[ShowBox] API Response: ${JSON.stringify(data, null, 2).substring(0, 1000)}`);
+
+        if (!data) {
+            console.error(`[ShowBox] API returned empty/null response`);
+            return streams;
+        }
+
+        // Check for API error messages in response
+        if (data.error || data.message) {
+            console.error(`[ShowBox] API Error: ${data.error || data.message}`);
+            return streams;
+        }
+
+        if (!data.success) {
+            console.error(`[ShowBox] API returned unsuccessful response (success=false)`);
             return streams;
         }
 
@@ -219,13 +303,13 @@ function processShowBoxResponse(data, mediaInfo, mediaType, seasonNum, episodeNu
         }
 
         // Process each version
-        data.versions.forEach(function(version, versionIndex) {
+        data.versions.forEach(function (version, versionIndex) {
             const versionName = version.name || `Version ${versionIndex + 1}`;
             const versionSize = version.size || 'Unknown';
 
             // Process each link in the version
             if (version.links && Array.isArray(version.links)) {
-                version.links.forEach(function(link) {
+                version.links.forEach(function (link) {
                     if (!link.url) return;
 
                     const normalizedQuality = getQualityFromName(link.quality || 'Unknown');
@@ -257,7 +341,7 @@ function processShowBoxResponse(data, mediaInfo, mediaType, seasonNum, episodeNu
     } catch (error) {
         console.error(`[ShowBox] Error processing response: ${error.message}`);
     }
-    
+
     return streams;
 }
 
@@ -290,30 +374,35 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
         apiUrl = `${SHOWBOX_API_BASE}/movie/${tmdbId}?cookie=${encodeURIComponent(cookie)}`;
     }
 
-    console.log(`[ShowBox] Requesting: ${apiUrl}`);
+    // Debug log with redacted cookie (show first/last 10 chars only)
+    const debugUrl = apiUrl.replace(/cookie=([^&]+)/, function (match, cookieVal) {
+        return 'cookie=' + cookieVal.substring(0, 10) + '...' + cookieVal.substring(cookieVal.length - 10);
+    });
+    console.log(`[ShowBox] Requesting: ${debugUrl}`);
+    console.log(`[ShowBox] Cookie length: ${cookie.length}, Expires: ${getJwtExpiryIso(cookie)}`);
 
     const mediaInfoPromise = getTMDBDetails(tmdbId, mediaType)
-        .then(function(mediaInfo) {
+        .then(function (mediaInfo) {
             console.log(`[ShowBox] TMDB Info: "${mediaInfo.title}" (${mediaInfo.year || 'N/A'})`);
             return mediaInfo;
         });
 
     const apiRequestPromise = makeRequest(apiUrl, { timeoutMs: SHOWBOX_API_TIMEOUT_MS })
-        .then(function(response) {
+        .then(function (response) {
             console.log(`[ShowBox] API Response status: ${response.status}`);
             return response.json();
         })
-        .then(function(data) {
+        .then(function (data) {
             console.log(`[ShowBox] API Response received:`, JSON.stringify(data, null, 2));
             return data;
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error(`[ShowBox] API request failed: ${error.message}`);
             throw error;
         });
 
     return Promise.all([mediaInfoPromise, apiRequestPromise])
-        .then(function([mediaInfo, data]) {
+        .then(function ([mediaInfo, data]) {
             // Process the response
             const streams = processShowBoxResponse(data, mediaInfo, mediaType, seasonNum, episodeNum);
 
@@ -323,7 +412,7 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
             }
 
             // Sort streams by quality (highest first)
-            streams.sort(function(a, b) {
+            streams.sort(function (a, b) {
                 const qualityOrder = {
                     'Original': 6,
                     '4K': 5,
@@ -341,7 +430,7 @@ function getStreams(tmdbId, mediaType = 'movie', seasonNum = null, episodeNum = 
             console.log(`[ShowBox] Returning ${streams.length} streams`);
             return streams;
         })
-        .catch(function(error) {
+        .catch(function (error) {
             console.error(`[ShowBox] Error in getStreams: ${error.message}`);
             return []; // Return empty array on error as per Nuvio scraper guidelines
         });

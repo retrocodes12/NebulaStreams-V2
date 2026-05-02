@@ -5,14 +5,15 @@ const TMDB_API_KEY = '439c478a771f35c05022f9feabcca01c';
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const ANILIST_URL = 'https://graphql.anilist.co';
 
-const HEADERS = {
+var HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-    'Connection': 'keep-alive'
+    'Connection': 'keep-alive',
+    'Referer': 'https://animekai.to/'
 };
 
 const API = 'https://enc-dec.app/api';
 const DB_API = 'https://enc-dec.app/db/kai';
-const KAI_AJAX = 'https://anikai.to/ajax';
+const KAI_AJAX = 'https://animekai.to/ajax';
 const ARM_BASE = 'https://arm.haglund.dev/api/v2';
 
 // Debug helpers
@@ -34,27 +35,36 @@ function logRid(rid, msg, extra) {
 // Generic fetch helper
 function fetchRequest(url, options) {
     var merged = Object.assign({ method: 'GET', headers: HEADERS }, options || {});
-    var attempts = 0;
-
-    function attempt() {
-        attempts++;
-        return fetch(url, merged).then(function (response) {
-            if (!response.ok) {
-                throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+    return fetch(url, merged).then(function (response) {
+        // Cloudflare solver integration
+        if (response.status === 403 || response.status === 503) {
+            if (typeof Cloudflare !== 'undefined' && Cloudflare.solve) {
+                console.log('[AnimeKai] Blocked by Cloudflare! Asking Nuvio to solve it for: ' + url);
+                return Cloudflare.solve(url).then(function (solvedHeaders) {
+                    console.log('[AnimeKai] Cloudflare solved! Updating headers and retrying...');
+                    if (solvedHeaders['Cookie']) HEADERS['Cookie'] = solvedHeaders['Cookie'];
+                    if (solvedHeaders['User-Agent']) HEADERS['User-Agent'] = solvedHeaders['User-Agent'];
+                    
+                    var retryOptions = Object.assign({}, merged);
+                    retryOptions.headers = Object.assign({}, retryOptions.headers || {}, {
+                        'Cookie': HEADERS['Cookie'],
+                        'User-Agent': HEADERS['User-Agent']
+                    });
+                    return fetch(url, retryOptions).then(function(retryRes) {
+                        if (!retryRes.ok) {
+                            throw new Error('HTTP ' + retryRes.status + ' after Cloudflare solve: ' + retryRes.statusText);
+                        }
+                        return retryRes;
+                    });
+                });
             }
-            return response;
-        }).catch(function (error) {
-            var isAbort = error && (error.name === 'AbortError' || error.name === 'TimeoutError');
-            if (isAbort || attempts >= 3) {
-                throw error;
-            }
-            return new Promise(function (resolve) {
-                setTimeout(resolve, attempts * 300);
-            }).then(attempt);
-        });
-    }
+        }
 
-    return attempt();
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+        }
+        return response;
+    });
 }
 
 // Resolve metadata via AniList Search for perfect matching
@@ -70,25 +80,11 @@ function getSyncInfo(id, mediaType, season, episode) {
             .then(function(data) {
                 var meta = data.meta;
                 if (!meta) throw new Error('No Cinemata metadata');
-                if (mediaType === 'movie') {
-                    return {
-                        date: meta.released ? meta.released.split('T')[0] : null,
-                        title: meta.name,
-                        episodeTitle: null,
-                        dayIndex: 1
-                    };
-                }
+                if (mediaType === 'movie') return { date: meta.released ? meta.released.split('T')[0] : null, title: meta.name, dayIndex: 1 };
                 
                 var videos = meta.videos || [];
                 var target = videos.find(function(v) { return v.season == season && v.episode == episode; });
-                if (!target || !target.released) {
-                    return {
-                        date: null,
-                        title: meta.name || null,
-                        episodeTitle: null,
-                        dayIndex: 1
-                    };
-                }
+                if (!target || !target.released) return { date: null, title: null, dayIndex: 1 };
 
                 var targetDate = target.released.split('T')[0];
                 var targetTitle = target.name || null;
@@ -104,12 +100,7 @@ function getSyncInfo(id, mediaType, season, episode) {
                     }
                 }
 
-                return {
-                    date: targetDate,
-                    title: meta.name || null,
-                    episodeTitle: targetTitle,
-                    dayIndex: dayIndex
-                };
+                return { date: targetDate, title: targetTitle, dayIndex: dayIndex };
             }).catch(function() { return { date: null, title: null, dayIndex: 1 }; });
     };
 
@@ -121,16 +112,7 @@ function getSyncInfo(id, mediaType, season, episode) {
 
     if (isImdb) {
         return getCinemetaInfo(id).then(function(info) {
-            if (info.date) {
-                return {
-                    imdbId: id,
-                    releaseDate: info.date,
-                    title: info.title,
-                    episodeTitle: info.episodeTitle,
-                    dayIndex: info.dayIndex,
-                    episode: episode
-                };
-            }
+            if (info.date) return { imdbId: id, releaseDate: info.date, episodeTitle: info.title, dayIndex: info.dayIndex, episode: episode };
             throw new Error('Could not find release date on Cinemata');
         });
     } else {
@@ -182,10 +164,6 @@ function getSyncInfo(id, mediaType, season, episode) {
 
 function resolveByDate(releaseDateStr, rid, showTitle, season, episodeTitle, dayIndex, originalEpisode) {
     if (!releaseDateStr || !/^\d{4}-\d{2}-\d{2}/.test(releaseDateStr)) {
-        return Promise.resolve(null);
-    }
-    if (!showTitle) {
-        logRid(rid, 'ArmSync: missing show title, refusing date-only AniList match');
         return Promise.resolve(null);
     }
 
@@ -292,8 +270,13 @@ function parseHtmlViaApi(html) {
 }
 
 function decryptMegaMedia(embedUrl) {
-    var mediaUrl = embedUrl.replace('/e/', '/media/');
-    return fetchRequest(mediaUrl)
+    var mediaUrl = embedUrl.replace('/e/', '/media/').replace('/e2/', '/media/');
+    return fetchRequest(mediaUrl, {
+        headers: {
+            'User-Agent': HEADERS['User-Agent'],
+            'Referer': 'https://animekai.to/'
+        }
+    })
         .then(function (res) { return res.json(); })
         .then(function (mediaResp) { return mediaResp.result; })
         .then(function (encrypted) {
@@ -532,8 +515,22 @@ function runStreamFetch(token, rid) {
                         })
                         .then(function (decrypted) {
                             if (decrypted && decrypted.url) {
-                                logRid(rid, 'mega.media → dec-mega', { lid: lid });
-                                return decryptMegaMedia(decrypted.url)
+                                var iframesrc = decrypted.url;
+                                logRid(rid, 'AnimeKai: Fetching intermediate iframe source', { url: iframesrc });
+                                
+                                return fetchRequest(iframesrc)
+                                    .then(function (res) { return res.text(); })
+                                    .then(function (html) {
+                                        // Extract the actual iframe src from the page
+                                        var iframeMatch = html.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+                                        var finalIframeUrl = iframeMatch ? iframeMatch[1] : iframesrc;
+                                        
+                                        // Ensure absolute URL
+                                        if (finalIframeUrl.indexOf('//') === 0) finalIframeUrl = 'https:' + finalIframeUrl;
+                                        
+                                        logRid(rid, 'mega.media → dec-mega', { lid: lid, finalUrl: finalIframeUrl });
+                                        return decryptMegaMedia(finalIframeUrl);
+                                    })
                                     .then(function (mediaData) {
                                         var srcs = [];
                                         if (mediaData && mediaData.sources) {

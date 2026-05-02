@@ -1,6 +1,8 @@
 /**
  * AllWish provider for Nuvio
  * ported from phisher98, ported by kabir
+ * 
+ * FIXED: Anime-only validation added.
  */
 
 const cheerio = require('cheerio-without-node-native');
@@ -70,6 +72,7 @@ function getTmdbDetails(tmdbId, mediaType) {
         title: mediaType === 'movie' ? data.title : data.name,
         originalTitle: mediaType === 'movie' ? data.original_title : data.original_name,
         year: (mediaType === 'movie' ? data.release_date : data.first_air_date)?.split('-')?.[0] || null,
+        genres: (data.genres || []).map(g => g.id),
     }));
 }
 
@@ -255,7 +258,7 @@ async function extractMegaPlay(url, streamLabel) {
         url: file,
         quality: 'Unknown',
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) rv:140.0) Gecko/20100101 Firefox/140.0',
             Accept: '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
             Origin: 'https://megaplay.buzz',
@@ -351,6 +354,13 @@ async function getStreams(tmdbId, mediaType = 'tv', season = null, episode = nul
     try {
         const mediaInfo = await getTmdbDetails(tmdbId, mediaType);
         if (!mediaInfo?.title) return [];
+
+        // VALIDATION: Reject content that is not categorized as Animation (TMDB ID: 16)
+        // Fallback: If genres are empty, proceed to search, as the site itself is anime-only.
+        if (mediaInfo.genres.length > 0 && !mediaInfo.genres.includes(16)) {
+            console.log(`[AllWish] Content is NOT Animation (Genres: ${mediaInfo.genres}). Rejecting.`);
+            return [];
+        }
 
         const match = await searchAllWish(mediaInfo);
         if (!match?.watchUrl) return [];

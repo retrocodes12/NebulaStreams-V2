@@ -1,16 +1,16 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║                      MovieBox — Nuvio Stream Plugin                         ║
+ * ║                      MovieBox — Nuvio Stream Plugin                                        ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║  Source     › https://themoviebox.org                                       ║
- * ║  Worker     › https://moviebox.s4nch1tt.workers.dev                         ║
- * ║  Author     › Sanchit  |  TG: @S4NCHITT                                     ║
- * ║  Project    › Murph's Streams                                                ║
- * ║  Manifest   › https://badboysxs-morpheus.hf.space/manifest.json             ║
+ * ║  Source     › https://themoviebox.org                                                      ║
+ * ║  Worker     › https://moviebox.s4nch1tt.workers.dev                                        ║
+ * ║  Author     › Sanchit  |  TG: @S4NCHITT                                                    ║
+ * ║  Project    › Murph's Streams                                                              ║
+ * ║  Manifest   › https://badboysxs-morpheus.hf.space/manifest.json                            ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║  Mode       › Calls Cloudflare Worker API directly                          ║
- * ║  Proxy      › Always uses proxy_url from worker (browser-safe, Range-ready) ║
- * ║  Speed      › Single API call — no scraping, no Nuxt parsing                ║
+ * ║  Mode       › Calls Cloudflare Worker API directly                                         ║
+ * ║  Proxy      › Always uses proxy_url from worker (browser-safe, Range-ready)                ║
+ * ║  Speed      › Single API call — no scraping, no Nuxt parsing                               ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

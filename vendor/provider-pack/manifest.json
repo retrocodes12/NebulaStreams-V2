@@ -45,7 +45,7 @@
       "id": "allwish",
       "name": "🌟 All-Wish",
       "description": "All-Wish TV episodes via All-Wish servers",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "Kabir",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/allwish.js",
@@ -68,6 +68,19 @@
       "formats": ["mp4", "m3u8"],
       "logo": "https://i.postimg.cc/MKJd7fy7/animekai.png",
       "contentLanguage": ["en"]
+    },
+    {
+      "id": "animepahe",
+      "name": "AnimePahe",
+      "description": "Watch anime online free in HD with fast streaming servers. Stream latest anime episodes and movies daily",
+      "version": "1.0.1",
+      "author": "Nuvio Team",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/animepahe.js",
+      "enabled": true,
+      "formats": ["m3u8", "mp4"],
+      "logo": "https://i.postimg.cc/c4ZBGNNs/animepahe.png",
+      "contentLanguage": ["en", "ja"]  
     },
     {
       "id": "animesalt",
@@ -176,28 +189,28 @@
     {
       "id": "dahmermovies",
       "name": "Dahmermovies",
-      "description": "Auto-generated description for Dahmermovies",
+      "description": "1080p Movies from Dahmermovies",
       "version": "1.0.0",
       "author": "Nuvio Team",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/dahmermovies.js",
       "enabled": true,
-      "formats": ["mp4", "m3u8"],
+      "formats": ["mp4", "mkv", "m3u8"],
       "logo": "https://i.postimg.cc/hGt3dV6Z/dhamermovies.png",
       "contentLanguage": ["en"] 
     },
     {
-      "id": "diziyou",
-      "name": "DiziYou",
-      "description": "Movies & Series in English & Turkish",
-      "version": "1.0.4",
-      "author": "MoOnCrOwN",
+      "id": "dahmermovies-tv",
+      "name": "Dahmermovies-TV",
+      "description": "Only works on Android TV",
+      "version": "1.0.1",
+      "author": "Nuvio Team",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/diziyou.js",
+      "filename": "providers/dahmermovies-4k.js",
       "enabled": true,
-      "formats": ["mp4", "m3u8"],
-      "logo": "https://i.postimg.cc/K8nYLrL3/diziyou.png",
-      "contentLanguage": ["en", "tr"]
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/hGt3dV6Z/dhamermovies.png",
+      "contentLanguage": ["en"]
     },
     {
       "id": "dooflix",
@@ -234,7 +247,20 @@
       "filename": "providers/flixindia.js",
       "enabled": true,
       "formats": ["mkv"],
-      "logo": "https://m.flixindia.xyz/onepieceskull.png",
+      "logo": "https://i.postimg.cc/4xSPpSbb/onepieceskull.png",
+      "contentLanguage": ["en", "hi"]
+    },
+    {
+      "id": "fmovies",
+      "name": "FMovies+",
+      "description": "Hindi Dubbed Movies/Series",
+      "version": "1.0.0",
+      "author": "Nuvio Team",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/fmovies.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/SQL5mmpm/fmovies.png",
       "contentLanguage": ["en", "hi"]
     },
     {
@@ -381,6 +407,19 @@
       "contentLanguage": ["en", "fr"]
     },
     {
+      "id": "nakios",
+      "name": "Nakios",
+      "description": "Mainly French, Some English & 4K Quality",
+      "version": "1.0.0",
+      "author": "Wooodyhood",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/nakios.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/nLwY1pJB/nakios.png",
+      "contentLanguage": ["fr", "en"]
+    },
+    {
       "id": "netmirror",
       "name": "Netmirror",
       "description": "Streaming links from Netmirror (Netflix, Prime, Disney etc).",
@@ -394,6 +433,58 @@
       "contentLanguage": ["en"]
     },
     {
+      "id": "playimdb",
+      "name": "PlayIMDb (Movies)",
+      "description": "High-Speed Direct Streaming for Movies (IMDb ID Extract)",
+      "version": "1.1.4",
+      "author": "Mukesh",
+      "supportedTypes": ["movie"],
+      "filename": "providers/playimdb.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/KzjPtYWY/imdb.png",
+      "contentLanguage": ["en", "hi"]
+    },
+    { 
+      "id": "playimdb_series",
+      "name": "PlayIMDb (Series)",
+      "description": "High-Speed Direct Streaming for TV Shows (StreamIMDb Extract)",
+      "version": "1.2.1",
+      "author": "Mukesh",
+      "supportedTypes": ["tv"],
+      "filename": "providers/playimdb_v2.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/KzjPtYWY/imdb.png",
+      "contentLanguage": ["en", "hi"]
+    },
+    { 
+      "id": "playimdb",
+      "name": "PlayIMDb (Movies)",
+      "description": "High-Speed Direct Streaming for Movies (IMDb ID Extract)",
+      "version": "1.1.4",
+      "author": "Mukesh",
+      "supportedTypes": ["movie"],
+      "filename": "providers/playimdb.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/KzjPtYWY/imdb.png",
+      "contentLanguage": ["en", "hi"]
+    },
+    { 
+      "id": "playimdb_series",
+      "name": "PlayIMDb Premium (Series)",
+      "description": "High-Speed Direct Streaming for TV Shows (StreamIMDb Extract)",
+      "version": "1.2.1",
+      "author": "Mukesh",
+      "supportedTypes": ["tv"],
+      "filename": "providers/playimdb_v2.js",
+      "enabled": true,
+      "formats": ["mp4", "mkv", "m3u8"],
+      "logo": "https://i.postimg.cc/KzjPtYWY/imdb.png",
+      "contentLanguage": ["en", "hi"]
+    },
+    {
       "id": "purstream",
       "name": "Purstream",
       "description": "Films and series in French (VF) / subtitled French (VOSTFR) / multi-language (MULTI) from purstream.art.",
@@ -405,6 +496,19 @@
       "formats": ["mp4", "m3u8"],
       "logo": "https://i.postimg.cc/7L5shxmC/purstream.png",
       "contentLanguage": ["en", "fr"]
+    },
+    {
+      "id": "rgshows",
+      "name": "RGShows",
+      "description": "Discover and stream your favorite Movies, TV Shows & Anime.",
+      "version": "1.0.0",
+      "author": "P-Stream Team",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/rgshows.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/kXNS9837/rgshows.png",
+      "contentLanguage": ["en"]
     },
     {
       "id": "showbox",
@@ -421,7 +525,7 @@
     },
     {
       "id": "streamflix",
-      "name": "Streamflix",
+      "name": "StreamFlix",
       "description": "Direct links via StreamFlix in Hindi",
       "version": "1.0.0",
       "author": "Nuvio Team",
@@ -434,7 +538,7 @@
     },
     {
       "id": "streamflixen",
-      "name": "Streamflix-En",
+      "name": "StreamFlix-En",
       "description": "Direct links via StreamFlix in English",
       "version": "1.0.0",
       "author": "Nuvio Team",
@@ -446,29 +550,29 @@
       "contentLanguage": ["en"]
     },
     {
-      "id": "test",
-      "name": "Test",
-      "description": "Direct links via StreamFlix API",
+      "id": "toflix",
+      "name": "ToFlix",
+      "description": "Films & Séries in English and French",
       "version": "1.0.0",
-      "author": "Nuvio Team",
+      "author": "wooodyhood",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/test.js",
+      "filename": "providers/toflix.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "",
-      "contentLanguage": ["en"]
+      "logo": "https://i.postimg.cc/yNxJYqkv/toflix.png",
+      "contentLanguage": ["en", "fr"]
     },
     {
-      "id": "test2",
-      "name": "Test2",
-      "description": "Direct links via StreamFlix API",
+      "id": "multivid",
+      "name": "MultiVid",
+      "description": "MultiVid - Includes VidEasy, VidLink, VidMody & VidSrc",
       "version": "1.0.0",
       "author": "Nuvio Team",
       "supportedTypes": ["movie", "tv"],
-      "filename": "providers/test2.js",
+      "filename": "providers/multivid.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "",
+      "logo": "https://i.postimg.cc/brxL7qg3/multivid.png",
       "contentLanguage": ["en"]
     },
     {
@@ -486,7 +590,7 @@
     },
     {
       "id": "vidlink",
-      "name": "Vidlink",
+      "name": "VidLink",
       "description": "Vidlink streaming with encrypted TMDB ID support for movies and TV shows",
       "version": "1.0.0",
       "author": "Nuvio Team",
@@ -494,12 +598,12 @@
       "filename": "providers/vidlink.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "https://i.postimg.cc/wMHSw2Vb/vidlink.png",
+      "logo": "https://i.postimg.cc/RZRHQd75/vidlink.png",
       "contentLanguage": ["en"]
     },
     {
       "id": "videasy",
-      "name": "Videasy",
+      "name": "VidEasy",
       "description": "Videasy streaming with encrypted TMDB ID support for movies and TV shows",
       "version": "1.0.0",
       "author": "Nuvio Team",
@@ -511,17 +615,30 @@
       "contentLanguage": ["en"]
     },
     {
+      "id": "vidsrc",
+      "name": "VidSrc",
+      "description": "Vidsrc - The best place to watch movies and TV shows online for free. Stream in 1080p HD",
+      "version": "1.0.0",
+      "author": "Nuvio Team",
+      "supportedTypes": ["movie", "tv"],
+      "filename": "providers/vidsrc.js",
+      "enabled": true,
+      "formats": ["mp4", "m3u8"],
+      "logo": "https://i.postimg.cc/ncMLBsLJ/vidsrc.png",
+      "contentLanguage": ["en"]
+    },
+    {
       "id": "vixsrc",
-      "name": "Vixsrc",
-      "description": "Auto-generated description for Vidlink",
+      "name": "VixSrc",
+      "description": "VixSrc - The best place to watch movies and TV shows online for free. Stream in 1080p HD",
       "version": "1.0.0",
       "author": "Nuvio Team",
       "supportedTypes": ["movie", "tv"],
       "filename": "providers/vixsrc.js",
       "enabled": true,
       "formats": ["mp4", "m3u8"],
-      "logo": "https://i.postimg.cc/tJP8zc5K/vixsrc.png",
-      "contentLanguage": ["en"]
+      "logo": "https://i.postimg.cc/1tHrBvzs/vixsrc.png",
+      "contentLanguage": ["en", "Ita"]
     },
     {
       "id": "onlykdrama",
