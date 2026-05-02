@@ -2180,6 +2180,7 @@ export class ProviderService {
       return existingRequest.then((result) => copyFastSearchResult(result));
     }
 
+    let currentResult = null;
     const request = (async () => {
       const contentProfile = rest.contentProfile || await this.getContentProfile(rest);
       const hasExplicitProviders = Array.isArray(providers) && providers.length > 0;
@@ -2220,6 +2221,14 @@ export class ProviderService {
         enforceFastTimeout: true,
         requestParams: rest
       });
+
+      currentResult = {
+        reason: 'phase1-partial',
+        providers: phaseOneResult.providers,
+        tried: phaseOneResult.tried,
+        streams: phaseOneResult.streams
+      };
+
       const phaseOneProviderFamilyCount = getDistinctProviderFamilyCount(phaseOneResult.streams);
       const canReturnPhaseOneEarly = !preferCompleteCoverage
         && phaseOneResult.streams.length >= minStreams
@@ -2302,6 +2311,7 @@ export class ProviderService {
         seedSettledResults: phaseOneResult.settledResults,
         requestParams: rest
       });
+
       const combinedProviders = [...phaseOneResult.providers, ...phaseTwoResult.providers];
       const combinedSettledResults = [...phaseOneResult.settledResults, ...phaseTwoResult.settledResults];
       const combinedTried = [...phaseOneResult.tried, ...phaseTwoResult.tried];
@@ -2312,6 +2322,14 @@ export class ProviderService {
         rest.streamOptions,
         rest.privateProviderSettings
       );
+
+      currentResult = {
+        reason: 'phase2-partial',
+        providers: combinedProviders,
+        tried: combinedTried,
+        streams: combinedStreams
+      };
+
       let combinedProviderFamilyCount = getDistinctProviderFamilyCount(combinedStreams);
 
       if (
@@ -2360,6 +2378,13 @@ export class ProviderService {
             rest.privateProviderSettings
           );
           combinedProviderFamilyCount = getDistinctProviderFamilyCount(combinedStreams);
+
+          currentResult = {
+            reason: 'diversity-retry-partial',
+            providers: combinedProviders,
+            tried: combinedTried,
+            streams: combinedStreams
+          };
         }
       }
 
@@ -2397,6 +2422,13 @@ export class ProviderService {
             rest.streamOptions,
             rest.privateProviderSettings
           );
+
+          currentResult = {
+            reason: 'retry-partial',
+            providers: combinedProviders,
+            tried: combinedTried,
+            streams: combinedStreams
+          };
         }
       }
 
@@ -2427,6 +2459,13 @@ export class ProviderService {
           rest.streamOptions,
           rest.privateProviderSettings
         );
+
+        currentResult = {
+          reason: 'torrent-fallback-partial',
+          providers: combinedProviders,
+          tried: combinedTried,
+          streams: combinedStreams
+        };
       }
 
       logger.info('fast provider search completed after fallback phase', {
@@ -2467,7 +2506,53 @@ export class ProviderService {
     this.fastSearchInFlight.set(requestKey, request);
 
     try {
-      const result = await request;
+      const timeoutMs = config.STREMIO_FAST_MAX_WAIT_MS;
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ isTimeout: true });
+        }, timeoutMs);
+      });
+
+      const result = await Promise.race([request, timeoutPromise]);
+
+      if (result && !result.isTimeout) {
+        return copyFastSearchResult(result);
+      }
+
+      if (currentResult?.streams?.length) {
+        logger.info('fast provider search returned partial results after aggregate timeout', {
+          tmdbId: rest.tmdbId,
+          mediaType: rest.mediaType,
+          streamCount: currentResult.streams.length,
+          reason: currentResult.reason
+        });
+        return copyFastSearchResult(currentResult);
+      }
+
+      const lastGoodResult = await this.getFastLastGoodResult(requestKey);
+
+      if (lastGoodResult?.streams?.length) {
+        logger.warn('serving fast search last-good fallback after aggregate timeout', {
+          tmdbId: rest.tmdbId,
+          mediaType: rest.mediaType,
+          resultCount: lastGoodResult.streams.length
+        });
+        return copyFastSearchResult(lastGoodResult);
+      }
+
+      if (result && result.isTimeout) {
+        logger.warn('fast provider search timed out with no results', {
+          tmdbId: rest.tmdbId,
+          mediaType: rest.mediaType
+        });
+        return {
+          reason: 'timeout-empty',
+          providers: [],
+          tried: [],
+          streams: []
+        };
+      }
+
       return copyFastSearchResult(result);
     } finally {
       this.fastSearchInFlight.delete(requestKey);
