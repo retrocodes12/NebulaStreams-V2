@@ -466,6 +466,20 @@ class RedisStreamResultCache {
     }
   }
 
+  async delete(cacheKey) {
+    if (!this.client || !this.available) {
+      return;
+    }
+
+    try {
+      await this.client.del(this.getKey(cacheKey));
+    } catch (error) {
+      this.available = false;
+      this.failureCount += 1;
+      logger.warn('redis stream result cache delete failed', { error });
+    }
+  }
+
   async close() {
     if (!this.client) {
       return;
@@ -2334,7 +2348,7 @@ export class StreamManager {
     publicBaseUrl = null
   }) {
     return JSON.stringify({
-      version: 56,
+      version: 57,
       tmdbId,
       mediaType,
       season: season ?? null,
@@ -2407,14 +2421,18 @@ export class StreamManager {
     const cached = this.stremioResultCache.get(cacheKey);
     const cachedResult = this.toCacheLookupResult(cacheKey, cached);
 
-    if (cachedResult && (cachedResult.state === 'fresh' || allowStale)) {
+    if (cachedResult && cachedResult.streams.length === 0) {
+      await this.purgeCachedStremioStreams(cacheKey);
+    } else if (cachedResult && (cachedResult.state === 'fresh' || allowStale)) {
       return cachedResult;
     }
 
     const redisEntry = await this.redisStreamResultCache.get(cacheKey);
     const redisResult = this.toCacheLookupResult(cacheKey, redisEntry);
 
-    if (redisResult && (redisResult.state === 'fresh' || allowStale)) {
+    if (redisResult && redisResult.streams.length === 0) {
+      await this.purgeCachedStremioStreams(cacheKey);
+    } else if (redisResult && (redisResult.state === 'fresh' || allowStale)) {
       logger.info('stremio result redis cache hit', {
         state: redisResult.state,
         resultCount: redisResult.streams.length
@@ -2438,6 +2456,11 @@ export class StreamManager {
       pruneMapByMaxEntries(this.stremioResultCache, config.STREMIO_RESULT_MEMORY_CACHE_MAX_ENTRIES);
       pruneMapByApproxBytes(this.stremioResultCache, config.STREMIO_RESULT_MEMORY_CACHE_MAX_MB * 1024 * 1024);
 
+      if (diskResult.streams.length === 0) {
+        await this.purgeCachedStremioStreams(cacheKey);
+        return null;
+      }
+
       if (diskResult.state === 'fresh' || allowStale) {
         return diskResult;
       }
@@ -2452,6 +2475,15 @@ export class StreamManager {
 
       return null;
     }
+  }
+
+  async purgeCachedStremioStreams(cacheKey) {
+    this.stremioResultCache.delete(cacheKey);
+    await this.redisStreamResultCache.delete(cacheKey);
+    await this.ensureStremioResultCacheDir();
+    try {
+      await rm(this.getStremioResultCachePath(cacheKey), { force: true });
+    } catch {}
   }
 
   async getLastGoodStremioStreams(cacheKey) {
@@ -2480,19 +2512,23 @@ export class StreamManager {
   }
 
   async setCachedStremioStreams(cacheKey, streams, { weak = false } = {}) {
+    // Empty stremio results are not cached (and any legacy empty entries are purged).
+    if (!Array.isArray(streams) || streams.length === 0) {
+      await this.purgeCachedStremioStreams(cacheKey);
+      return;
+    }
+
     const now = Date.now();
-    const freshTtlSeconds = streams.length === 0
-      ? config.STREMIO_EMPTY_RESULT_CACHE_TTL_SECONDS
-      : weak
-        ? Math.min(config.STREMIO_WEAK_RESULT_CACHE_TTL_SECONDS, config.STREMIO_RESULT_CACHE_TTL_SECONDS)
-        : config.STREMIO_RESULT_CACHE_TTL_SECONDS;
+    const freshTtlSeconds = weak
+      ? Math.min(config.STREMIO_WEAK_RESULT_CACHE_TTL_SECONDS, config.STREMIO_RESULT_CACHE_TTL_SECONDS)
+      : config.STREMIO_RESULT_CACHE_TTL_SECONDS;
 
     if (freshTtlSeconds <= 0) {
       return;
     }
 
     const freshTtlMs = freshTtlSeconds * 1000;
-    const staleTtlMs = streams.length === 0 || weak
+    const staleTtlMs = weak
       ? freshTtlMs
       : Math.max(
         freshTtlMs,

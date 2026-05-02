@@ -3197,7 +3197,8 @@ export class ProviderService {
 
     const hydratedStreams = deserializeStreams(entry.serializedStreams);
 
-    if (hydratedStreams.length === 0 && entry.verifiedEmpty !== true) {
+    // Empty provider results are not cached (and any legacy empty entries are purged).
+    if (hydratedStreams.length === 0) {
       this.resultCache.delete(cacheKey);
       await this.deleteCachedResult(cacheKey);
       return null;
@@ -3224,7 +3225,8 @@ export class ProviderService {
         return null;
       }
 
-      if (hydratedStreams.length === 0 && !isVerifiedEmptyCacheEntry(payload, hydratedStreams)) {
+      // Empty provider results are not cached (and any legacy empty entries are purged).
+      if (hydratedStreams.length === 0) {
         await rm(cachePath, { force: true });
         return null;
       }
@@ -3297,7 +3299,8 @@ export class ProviderService {
   }
 
   async setCachedResult(cacheKey, streams, providerId = null) {
-    if (streams.length === 0 && providerId && NO_EMPTY_CACHE_PROVIDERS.has(providerId)) {
+    // Empty provider results are not cached (and any legacy empty entries are purged).
+    if (streams.length === 0) {
       this.resultCache.delete(cacheKey);
       try {
         await rm(this.getCacheFilePath(cacheKey), { force: true });
@@ -3305,30 +3308,12 @@ export class ProviderService {
       return;
     }
 
-    if (streams.length === 0) {
-      const emptyTtlSeconds = PRIORITY_EMPTY_CACHE_PROVIDERS.has(providerId)
-        ? config.PROVIDER_PRIORITY_EMPTY_CACHE_TTL_SECONDS
-        : config.PROVIDER_EMPTY_CACHE_TTL_SECONDS;
-
-      if (emptyTtlSeconds <= 0) {
-        this.resultCache.delete(cacheKey);
-        try {
-          await rm(this.getCacheFilePath(cacheKey), { force: true });
-        } catch {}
-        return;
-      }
-    }
-
     const serializedStreams = serializeStreams(streams);
     const entry = {
       serializedStreams,
       approxBytes: getSerializedApproxBytes(serializedStreams),
-      verifiedEmpty: streams.length === 0,
-      expiresAt: Date.now() + (streams.length === 0
-        ? PRIORITY_EMPTY_CACHE_PROVIDERS.has(providerId)
-          ? config.PROVIDER_PRIORITY_EMPTY_CACHE_TTL_SECONDS
-          : config.PROVIDER_EMPTY_CACHE_TTL_SECONDS
-        : config.PROVIDER_CACHE_TTL_SECONDS) * 1000
+      verifiedEmpty: false,
+      expiresAt: Date.now() + (config.PROVIDER_CACHE_TTL_SECONDS * 1000)
     };
 
     touchMapEntry(this.resultCache, cacheKey, entry);
